@@ -89,7 +89,7 @@ resource "aws_nat_gateway" "nat_gateway" {
 
 # Private Route Table (only if private subnets are enabled)
 resource "aws_default_route_table" "private_route_table" {
-  count = var.enable_private_subnets ? 1 : 0
+  count = var.enable_private_subnets && var.enable_nat_gateway ? 1 : 0
 
   default_route_table_id = aws_vpc.vpc.default_route_table_id
   
@@ -103,12 +103,13 @@ resource "aws_default_route_table" "private_route_table" {
   }
 }
 
-# Private Route Table Associations (only if private subnets are enabled)
+# Private Route Table Associations (only if private subnets and NAT Gateway are enabled)
 resource "aws_route_table_association" "private_route_association" {
-  count          = var.enable_private_subnets ? length(aws_subnet.private_subnets) : 0
+  count = var.enable_private_subnets && var.enable_nat_gateway ? length(aws_subnet.private_subnets) : 0
   subnet_id      = element(aws_subnet.private_subnets[*].id, count.index)
-  route_table_id = aws_default_route_table.private_route_table[0].id
+  route_table_id = aws_route_table.private_route_table[0].id
 }
+
 
 # Random Integer for selecting public subnet (used for NAT Gateway)
 resource "random_integer" "random_subnet_index" {
